@@ -80,6 +80,7 @@ def main(ctx):
     Then run your LLM tool in another terminal:
 
         sherlock claude
+        sherlock happy
         sherlock gemini
         sherlock codex
     """
@@ -144,6 +145,7 @@ def start(port: int, limit: int):
     console.print()
     console.print("[yellow]In another terminal, run:[/yellow]")
     console.print(f"  [cyan]sherlock claude[/cyan]")
+    console.print(f"  [cyan]sherlock happy[/cyan]")
     console.print(f"  [cyan]sherlock gemini[/cyan]")
     console.print(f"  [cyan]sherlock codex[/cyan]")
     console.print()
@@ -174,6 +176,22 @@ def claude(port: int, args: tuple):
     Example: sherlock claude
     """
     _run_tool("anthropic", "claude", port, args)
+
+
+@main.command()
+@click.option("--port", "-p", default=DEFAULT_PROXY_PORT, help="Proxy port number")
+@click.argument("args", nargs=-1)
+def happy(port: int, args: tuple):
+    """Run Happy (Claude frontend for remote monitoring) with proxy configured.
+
+    Happy is a frontend for Claude that enables remote monitoring.
+    See: https://github.com/slopus/happy
+
+    Start 'sherlock start' in another terminal first.
+
+    Example: sherlock happy
+    """
+    _run_tool("anthropic", "happy", port, args)
 
 
 @main.command()
