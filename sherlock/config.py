@@ -2,10 +2,32 @@
 
 from pathlib import Path
 
-# API endpoints to intercept
-ANTHROPIC_HOST = "api.anthropic.com"
+# API endpoints
+PROVIDERS = {
+    "anthropic": {
+        "host": "api.anthropic.com",
+        "base_url": "https://api.anthropic.com",
+        "env_vars": ["ANTHROPIC_BASE_URL"],
+    },
+    "openai": {
+        "host": "api.openai.com",
+        "base_url": "https://api.openai.com",
+        "env_vars": ["OPENAI_BASE_URL"],
+    },
+    "gemini": {
+        "host": "generativelanguage.googleapis.com",
+        "base_url": "https://generativelanguage.googleapis.com",
+        "env_vars": [
+            "GOOGLE_GEMINI_BASE_URL",
+            "GEMINI_API_BASE_URL",
+            "GEMINI_BASEURL",
+        ],
+    },
+}
 
-INTERCEPTED_HOSTS = [ANTHROPIC_HOST]
+# Legacy compatibility
+ANTHROPIC_HOST = PROVIDERS["anthropic"]["host"]
+INTERCEPTED_HOSTS = [p["host"] for p in PROVIDERS.values()]
 
 # Default token limits
 DEFAULT_TOKEN_LIMIT = 200_000

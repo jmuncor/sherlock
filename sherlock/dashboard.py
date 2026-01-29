@@ -43,10 +43,12 @@ class SherlockDashboard:
             self.requests = self.requests[-MAX_LOG_ENTRIES:]
 
         # Update last prompt
-        last_message = data.get("last_user_message", "")
-        if last_message:
-            self.last_prompt = last_message
-            self.last_provider = data.get("provider", "unknown").capitalize()
+        messages = data.get("messages", [])
+        for msg in reversed(messages):
+            if msg.get("role") == "user":
+                self.last_prompt = msg.get("content", "")
+                break
+        self.last_provider = data.get("provider", "unknown").capitalize()
 
     def load_history(self, history: list[dict]) -> None:
         """Load historical data to restore session state."""
@@ -56,7 +58,6 @@ class SherlockDashboard:
     def _make_header(self) -> Panel:
         """Create the header panel."""
         title = Text()
-        title.append("🔍 ", style="bold")
         title.append("SHERLOCK", style="bold cyan")
         title.append(" - LLM Traffic Inspector", style="dim")
         return Panel(title, style="cyan", height=3)
@@ -80,7 +81,7 @@ class SherlockDashboard:
             TextColumn("({task.completed:,} / {task.total:,} tokens)"),
             expand=True,
         )
-        task = progress.add_task("Context Usage", total=self.token_limit, completed=self.total_tokens)
+        progress.add_task("Context Usage", total=self.token_limit, completed=self.total_tokens)
 
         return Panel(
             progress,
@@ -97,8 +98,8 @@ class SherlockDashboard:
         table.add_column("Model", width=30)
         table.add_column("Tokens", justify="right", width=10)
 
-        # Show most recent requests (reversed so newest at bottom)
-        display_requests = self.requests[-20:]  # Show last 20
+        # Show most recent requests
+        display_requests = self.requests[-20:]
         for req in display_requests:
             tokens_str = f"{req['tokens']:,}"
             table.add_row(

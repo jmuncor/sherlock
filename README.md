@@ -1,14 +1,15 @@
 <p align="center">
   <h1 align="center">Sherlock</h1>
   <p align="center">
-    <strong>LLM API Traffic Inspector & Token Usage Dashboard</strong>
+    <strong>Token Tracker for LLM CLI Tools</strong>
   </p>
   <p align="center">
     <img src="https://img.shields.io/badge/python-3.10+-3776AB?logo=python&logoColor=white" alt="Python">
     <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
     <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey.svg" alt="Platform">
-    <img src="https://img.shields.io/badge/proxy-mitmproxy-orange.svg" alt="mitmproxy">
-    <img src="https://img.shields.io/badge/LLM-Anthropic%20Claude-blueviolet.svg" alt="Anthropic">
+    <img src="https://img.shields.io/badge/Claude_Code-supported-blueviolet.svg" alt="Claude Code">
+    <img src="https://img.shields.io/badge/Gemini_CLI-supported-blue.svg" alt="Gemini">
+    <img src="https://img.shields.io/badge/Codex-supported-green.svg" alt="Codex">
   </p>
   <p align="center">
     <a href="#installation">Installation</a> •
@@ -21,65 +22,38 @@
 
 ---
 
-Sherlock is a transparent proxy that intercepts HTTPS traffic to LLM APIs and displays real-time token usage in a beautiful terminal dashboard. Track your AI costs, debug prompts, and monitor context window usage across your development session.
+Sherlock tracks token usage for LLM CLI tools with a live terminal dashboard. See exactly how many tokens you're using in real-time.
 
 ## Why Sherlock?
 
 - **Track Token Usage**: See exactly how many tokens each request consumes
 - **Monitor Context Windows**: Visual fuel gauge shows cumulative usage against your limit
 - **Debug Prompts**: Automatically saves every prompt as markdown and JSON for review
-- **Zero Code Changes**: Works with any tool that respects proxy environment variables
+- **Zero Configuration**: No certificates, no setup - just install and go
 
 ## Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/jmuncor/sherlock.git
-cd sherlock
-
-# Install in development mode
-pip install -e .
+pip install sherlock
 ```
 
 ### Requirements
 
 - Python 3.10+
-- Node.js (for intercepting Node.js applications like Claude Code)
 
 ## Quick Start
 
-### 1. Start Sherlock
+### Terminal 1: Start the Dashboard
 
 ```bash
 sherlock start
 ```
 
-On first run, Sherlock will:
-- Generate the mitmproxy CA certificate
-- Prompt you to install it in your system trust store
-- Ask where to save intercepted prompts
-
-### 2. Run Your LLM Tools
-
-In a separate terminal, use Sherlock to proxy your commands:
-
-```bash
-# For Claude Code
-sherlock claude
-
-# For any command
-sherlock run --node your-llm-tool
-```
-
-That's it! Watch the dashboard update in real-time as you interact with LLM APIs.
-
-## Features
-
-### Live Terminal Dashboard
+You'll be prompted to choose where to save captured prompts, then the dashboard appears:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  🔍 SHERLOCK - LLM Traffic Inspector                        │
+│  SHERLOCK - LLM Traffic Inspector                           │
 ├─────────────────────────────────────────────────────────────┤
 │  Context Usage  ████████████░░░░░░░░░░░░░░░░  42%           │
 │                 (84,231 / 200,000 tokens)                   │
@@ -93,31 +67,53 @@ That's it! Watch the dashboard update in real-time as you interact with LLM APIs
 └─────────────────────────────────────────────────────────────┘
 ```
 
+### Terminal 2: Run Your LLM Tool
+
+```bash
+# For Claude Code
+sherlock claude
+
+# For Gemini CLI (see known issues)
+sherlock gemini
+
+# For OpenAI Codex
+sherlock codex
+```
+
+That's it! Watch the dashboard update in real-time as you work.
+
+## Features
+
+### Live Terminal Dashboard
+
+Real-time token tracking with color-coded fuel gauge:
+- Green: < 50% of limit
+- Yellow: 50-80% of limit
+- Red: > 80% of limit
+
 ### Prompt Archive
 
-Every intercepted request is saved as:
+Every intercepted request is saved to your chosen directory:
 - **Markdown** - Human-readable format with metadata
 - **JSON** - Raw API request body for debugging
 
-### Context Fuel Gauge
+### Session Summary
 
-Visual progress bar with color-coded warnings:
-- 🟢 Green: < 50% usage
-- 🟡 Yellow: 50-80% usage
-- 🔴 Red: > 80% usage
+When you exit, see your total usage:
+
+```
+Session complete. Total: 84,231 tokens across 12 requests.
+```
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `sherlock` | Start the proxy and dashboard |
-| `sherlock start` | Same as above (explicit) |
+| `sherlock start` | Start the proxy and dashboard |
 | `sherlock claude` | Run Claude Code with proxy configured |
-| `sherlock run <cmd>` | Run any command with proxy configured |
-| `sherlock run --node <cmd>` | Run Node.js app with proxy configured |
-| `sherlock check-certs` | Verify CA certificate installation |
-| `sherlock install-certs` | Show certificate installation instructions |
-| `sherlock env` | Print proxy environment variables |
+| `sherlock gemini` | Run Gemini CLI with proxy configured |
+| `sherlock codex` | Run OpenAI Codex CLI with proxy configured |
+| `sherlock run --provider <name> <cmd>` | Run any command with proxy configured |
 
 ### Options
 
@@ -125,80 +121,58 @@ Visual progress bar with color-coded warnings:
 sherlock start [OPTIONS]
 
 Options:
-  -p, --port NUM          Proxy port (default: 8080)
-  -l, --limit NUM         Token limit for fuel gauge (default: 200000)
-  --persist               Save token history across sessions
-  --skip-cert-check       Skip certificate verification
+  -p, --port NUM    Proxy port (default: 8080)
+  -l, --limit NUM   Token limit for fuel gauge (default: 200000)
+```
+
+```bash
+sherlock claude [OPTIONS] [ARGS]...
+
+Options:
+  -p, --port NUM    Proxy port (default: 8080)
 ```
 
 ## How It Works
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                      Your LLM Application                        │
-│              (with proxy environment variables)                  │
-└─────────────────────────────┬────────────────────────────────────┘
-                              │ HTTPS
-                              ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                     mitmproxy (port 8080)                        │
-│                   + Sherlock Interceptor                         │
-└─────────────────────────────┬────────────────────────────────────┘
-                              │ Parsed events
-                              ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                    Sherlock Dashboard                            │
-│              Token tracking • Request log • Prompt preview       │
-└──────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-                    ~/.sherlock/prompts/
-                    ├── 2024-01-15_14-23-01_anthropic.md
-                    └── 2024-01-15_14-23-01_anthropic.json
+┌─────────────────────────────────────────────────────────────────┐
+│  Terminal 1: sherlock start                                      │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │  HTTP Proxy (localhost:8080)                                ││
+│  │  + Dashboard                                                ││
+│  │  + Prompt Archive                                           ││
+│  └─────────────────────────────────────────────────────────────┘│
+└───────────────────────────────┬─────────────────────────────────┘
+                                │ HTTP
+                                │
+┌───────────────────────────────┴─────────────────────────────────┐
+│  Terminal 2: sherlock claude                                     │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │  Sets ANTHROPIC_BASE_URL=http://localhost:8080              ││
+│  │  Runs: claude                                               ││
+│  └─────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                │ HTTPS
+                                ▼
+                      ┌───────────────────┐
+                      │ api.anthropic.com │
+                      └───────────────────┘
 ```
 
 ## Supported Providers
 
-| Provider | Status |
-|----------|--------|
-| Anthropic (Claude) | ✅ Supported |
-| OpenAI | 🔜 Coming soon |
-| Google Gemini | 🔜 Coming soon |
+| Provider | Command | Status |
+|----------|---------|--------|
+| Anthropic (Claude Code) | `sherlock claude` | Supported |
+| Google (Gemini CLI) | `sherlock gemini` | Blocked by upstream issue |
+| OpenAI (Codex) | `sherlock codex` | Supported |
 
-## Configuration
+## Known Issues
 
-### Certificate Setup
+### Gemini CLI
 
-Sherlock uses mitmproxy to intercept HTTPS traffic. On first run, it will guide you through installing the CA certificate.
-
-**macOS:**
-```bash
-sudo security add-trusted-cert -d -r trustRoot \
-  -k /Library/Keychains/System.keychain \
-  ~/.mitmproxy/mitmproxy-ca-cert.pem
-```
-
-**Ubuntu/Debian:**
-```bash
-sudo cp ~/.mitmproxy/mitmproxy-ca-cert.pem \
-  /usr/local/share/ca-certificates/mitmproxy-ca-cert.crt
-sudo update-ca-certificates
-```
-
-### Environment Variables
-
-For manual proxy configuration:
-
-```bash
-export HTTP_PROXY="http://127.0.0.1:8080"
-export HTTPS_PROXY="http://127.0.0.1:8080"
-export NODE_EXTRA_CA_CERTS="$HOME/.mitmproxy/mitmproxy-ca-cert.pem"
-```
-
-Or use the helper:
-```bash
-eval $(sherlock env)
-```
+Gemini CLI currently has a [known issue](https://github.com/google-gemini/gemini-cli/issues/15430) where it ignores custom base URLs when using OAuth authentication. Sherlock's Gemini support will work automatically once the Gemini CLI team fixes this issue.
 
 ## Contributing
 
@@ -220,14 +194,6 @@ source venv/bin/activate
 pip install -e .
 ```
 
-### Adding Provider Support
-
-To add support for a new LLM provider:
-
-1. Add the API host to `sherlock/config.py`
-2. Create a parser function in `sherlock/parser.py`
-3. Update the `parse_request()` function to route to your parser
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -235,6 +201,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <p align="center">
-  <em>See what's really being sent to the LLM. Learn. Optimize. Repeat.</em>
+  <em>See what's really being sent to the LLM. Track. Learn. Optimize.</em>
 </p>
-
